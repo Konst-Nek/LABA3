@@ -6,7 +6,7 @@ namespace main
 {
     class Prog
     {
-        abstract public class Token
+        public class Token
         {
             public int token_value;
             public Token()
@@ -27,7 +27,7 @@ namespace main
             }
             public Text(List<Sentence> sentences)
             {
-                this.sentences = sentences;
+                this.sentences = new List<Sentence>(sentences);
             }
             public void Add(Sentence sentence)
             {
@@ -38,6 +38,15 @@ namespace main
                 foreach (Sentence sentence in this.sentences)
                 {
                     sentence.Print();
+                }
+                Console.WriteLine("---------------------------------------------------------------");
+            }
+            public void Print_Words()
+            {
+                foreach (Sentence sentence in this.sentences)
+                {
+                    sentence.Print_Words();
+                    Console.WriteLine();
                 }
             }
             public Sentence this[int index]
@@ -94,8 +103,8 @@ namespace main
             }
             public Sentence(List<Word> words, List<Punctuation> punctuations)
             {
-                this.words = words;
-                this.signs = punctuations;
+                this.words = new List<Word>(words);
+                this.signs = new List<Punctuation>(punctuations);
                 foreach (Word word in words)
                 {
                     this.token_value += word.token_value;
@@ -183,11 +192,15 @@ namespace main
             }
             public void Print_Punctuation()
             {
-                foreach (Word word in this.words)
+                foreach (Punctuation punctuation in this.signs)
                 {
-                    word.Print();
+                    punctuation.Print();
                     Console.WriteLine();
                 }
+            }
+            public void Print_Token_Amount()
+            {
+                Console.WriteLine($"Token amount: {this.Count_Token_Amount()}");
             }
             public int Count_Words()
             {
@@ -211,6 +224,15 @@ namespace main
                 foreach (Punctuation punctuation in this.signs)
                 {
                     length += 1;
+                }
+                return length;
+            }
+            public int Sentence_Length_Words()
+            {
+                int length = 0;
+                foreach(Word word in this.words)
+                {
+                    length += word.Length();
                 }
                 return length;
             }
@@ -292,22 +314,13 @@ namespace main
         } // Создать список слов по пробелам
         public static Sentence Create_Sentence(List<Word> words, List<Punctuation> punctuations)
         {
-            Sentence ret = new Sentence();
-            foreach (Word word in words)
-            {
-                ret.words.Add(word);
-            }
-            foreach (Punctuation signs in punctuations)
-            {
-                ret.signs.Add(signs);
-            }
-            return ret;
+            return new Sentence(words, punctuations);
         } // Создать предложение
         public static Text Create_Text(List<Sentence> sentences)
         {
             return new Text(sentences);
         } // Создать текст
-        public static Text Read_text(string path)
+        public static Text Read_text(string path) // не читает последний если в конце нет знака
         {
             List<Word> words = new List<Word>();
             List<Punctuation> punctuations = new List<Punctuation>();
@@ -330,7 +343,7 @@ namespace main
                             words.Add(Create_Word(word));
                             word = "";
                         }
-                        else if (ch == '.' || ch == '!' || ch == '?') // ... Не будет работать 
+                        else if (ch == '.' || ch == '!' || ch == '?') 
                         {
                             if (word.Length != 0)
                             {
@@ -363,13 +376,13 @@ namespace main
             }
             return new Text(sentences);
         } // Прочитать текст
-        public static void Print_Amount_Words(Text text) // По порядку по возрастанию кол-ва слов
+        public static void PrintBy_Amount_Words(Text text) // По порядку по возрастанию кол-ва слов
         {
             for (int i = 0; i < text.Count_Sentences() - 1; i++)
             {
                 for (int j = 0; j < text.Count_Sentences() - 1 - i; j++)
                 {
-                    if (text[i].Count_Words() > text[i + 1].Count_Words())
+                    if (text[j].Count_Words() > text[j + 1].Count_Words())
                     {
                         Sentence temp = text[j];
                         text[j] = text[j + 1];
@@ -379,13 +392,13 @@ namespace main
             }
             text.Print(); // дописать !!!!!!!
         }
-        public static void Print_Length_Words(Text text) // По порядку по возрастанию длины 
+        public static void PrintBy_Length_Words(Text text) // По порядку по возрастанию длины 
         {
             for (int i = 0; i < text.Count_Sentences() - 1; i++)
             {
                 for (int j = 0; j < text.Count_Sentences() - 1 - i; j++)
                 {
-                    if (text[i].Sentence_Length() > text[i + 1].Sentence_Length())
+                    if (text[j].Sentence_Length_Words() > text[j + 1].Sentence_Length_Words())
                     {
                         Sentence temp = text[j];
                         text[j] = text[j + 1];
@@ -493,10 +506,16 @@ namespace main
         } // Удалить стоп-слова
         public static void Main(string[] args)
         {
-            string path = @"C:\Users\noob1\source\repos\Laba 3\Laba 3\TextFile1.txt";
+            string path = @"C:\Users\noob1\source\repos\Laba 3\Laba 3\test_len_words.txt";
             Text text = Read_text(path);
-            text.sentences.Add(new Sentence());
-            text.Print();
+            text.Print(); // +
+            //text.Print_Token_Amount(); // +
+            //foreach(Sentence sentence in text.sentences)
+            //{
+                //sentence.Print_Token_Amount(); // +
+            //}
+            //PrintBy_Amount_Words(text); // +-
+            PrintBy_Length_Words(text); // +-
         }
 
     }
