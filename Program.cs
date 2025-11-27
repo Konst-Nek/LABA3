@@ -1,10 +1,9 @@
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
-using static main.Prog;
+using System.Text.RegularExpressions;
+using System.Xml.Serialization;
 
 namespace main
 {
-    class Prog
+    public class Prog
     {
         public class Token
         {
@@ -18,6 +17,7 @@ namespace main
                 Console.WriteLine($"Token value: {this.token_value}");
             }
         }
+        [Serializable]
         public class Text
         {
             public List<Sentence> sentences;
@@ -80,7 +80,7 @@ namespace main
             public int Count_Token_Amount()
             {
                 int token_amount = 0;
-                foreach(Sentence sentence in this.sentences)
+                foreach (Sentence sentence in this.sentences)
                 {
                     token_amount += sentence.Count_Token_Amount();
                 }
@@ -91,6 +91,7 @@ namespace main
                 Console.WriteLine($"Text token amount: {this.Count_Token_Amount()}");
             }
         }
+        [Serializable]
         public class Sentence : Token
         {
             public List<Word> words;
@@ -144,7 +145,7 @@ namespace main
             }
             public void Add(List<Word> words) // Добавить несколько слов
             {
-                foreach(Word word in words)
+                foreach (Word word in words)
                 {
                     this.Add(word);
                 }
@@ -167,6 +168,54 @@ namespace main
                     this.Add(punctuation);
                 }
             }
+            public void Remove_Word(Word word, bool ignore_register = false)
+            {
+                foreach (Word this_word in this.words)
+                {
+                    if (ignore_register == true)
+                    {
+                        if (this_word.ToLower() == word.ToLower())
+                        {
+                            this.words.Remove(this_word);
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        if (this_word == word)
+                        {
+                            this.words.Remove(this_word);
+                            break;
+                        }
+                    }
+                }
+            }
+            public void Remove_Word(String word, bool ignore_register = false)
+            {
+                foreach (Word this_word in this.words)
+                {
+                    if (ignore_register == true)
+                    {
+                        if (this_word.ToString().ToLower() == word.ToLower())
+                        {
+                            this.words.Remove(this_word);
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        if (this_word.ToString() == word)
+                        {
+                            this.words.Remove(this_word);
+                            break;
+                        }
+                    }
+                }
+            }
+            public void Remove_Word(int index)
+            {
+                this.words.RemoveAt(index);
+            }
             public void Print()
             {
                 foreach (Word word in this.words)
@@ -180,7 +229,7 @@ namespace main
                     punctuation.Print();
                     Console.Write(" ");
                 }
-                Console.WriteLine();
+                Console.WriteLine("\n---------------");
             }
             public void Print_Words()
             {
@@ -230,13 +279,42 @@ namespace main
             public int Sentence_Length_Words()
             {
                 int length = 0;
-                foreach(Word word in this.words)
+                foreach (Word word in this.words)
                 {
                     length += word.Length();
                 }
                 return length;
             }
+            public void Sort_Words()
+            {
+                for (int i = 0; i < this.words.Count - 1; i++)
+                {
+                    for (int j = 0; j < this.words.Count - i - 1; j++)
+                    {
+                        int short_one = 0;
+                        if (this.words[j].Length() >= this.words[j + 1].Length())
+                        {
+                            short_one = this.words[j+1].Length();
+                        }
+                        else
+                        {
+                            short_one = this.words[j].Length();
+                        }
+                        for (int k = 0; k < short_one; k++)
+                        {
+                            if (Char.ToLower(this.words[j][k]) > Char.ToLower(this.words[j + 1][k]))
+                            {
+                                Word temp = this.words[j];
+                                this.words[j] = this.words[j + 1];
+                                this.words[j + 1] = temp;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
         }
+        [Serializable]
         public class Word : Token
         {
             public string word;
@@ -254,7 +332,7 @@ namespace main
             {
                 get
                 {
-                    return this[index];
+                    return this.word[index];
                 }
                 set
                 {
@@ -275,7 +353,20 @@ namespace main
                 this.word = s;
                 this.token_value += s.Length;
             }
+            public String ToLower()
+            {
+                return this.word.ToLower();
+            }
+            public String ToUpper()
+            {
+                return this.word.ToUpper();
+            }
+            public String ToString()
+            {
+                return this.word;
+            }
         }
+        [Serializable]
         public class Punctuation : Token
         {
             public char sign;
@@ -291,7 +382,14 @@ namespace main
             }
             public void Print()
             {
-                Console.Write(this.sign);
+                if (this.sign == '0')
+                {
+                    Console.Write("Empty");
+                }
+                else
+                {
+                    Console.Write(this.sign);
+                }
             }
         }
         public static Punctuation Create_Punctuation(char ch)
@@ -320,62 +418,78 @@ namespace main
         {
             return new Text(sentences);
         } // Создать текст
-        public static Text Read_text(string path) // не читает последний если в конце нет знака
+        public static Text Read_txt(string path)
         {
-            List<Word> words = new List<Word>();
-            List<Punctuation> punctuations = new List<Punctuation>();
             List<Sentence> sentences = new List<Sentence>();
+            List<Word> words = new List<Word>();
             string word = "";
+            string sentence = "";
+            Regex reg_end_sentence = new Regex(@"[a-zA-Z0-9а-яА-Я][!.?]\s+[a-zA-Z0-9а-яА-Я]");
+            Regex reg_end_sentence1 = new Regex(@"[a-zA-Z0-9а-яА-Я][!.?]\s*[\n\r]{2}\s*[\n\r]*\s*[a-zA-Z0-9а-яА-Я]");
+            Regex reg_end_sentence2 = new Regex(@"\w[^.!?]\s*[\n\r]{2}\s*[\n\r]*\s*[a-zA-Z0-9а-яА-Я]");
+            Regex reg_end_final = new Regex(@"[a-zA-Z0-9][!.?]\s*[\n\r]*");
+            List<Punctuation> punctuations = new List<Punctuation>();
+            char ch = ' ';
             using (StreamReader sr = new StreamReader(path))
             {
-                char ch;
                 while (sr.EndOfStream != true)
                 {
                     ch = Convert.ToChar(sr.Read());
-                    if (Char.IsLetter(ch) || Char.IsDigit(ch)) // if [0-9] and [a-z] and [A-Z]
+                    sentence += ch;
+                    if (Char.IsLetterOrDigit(ch))
                     {
                         word += ch;
                     }
-                    else
+                    else if ((ch == ' ' || ch == '\n' || ch == '\r') && word.Length != 0)
                     {
-                        if (ch == ' ' && word.Length != 0)
+                        words.Add(Create_Word(word));
+                        word = "";
+                    }
+                    else if (Char.IsPunctuation(ch))
+                    {
+                        punctuations.Add(Create_Punctuation(ch));
+                        if (word.Length != 0)
                         {
                             words.Add(Create_Word(word));
                             word = "";
                         }
-                        else if (ch == '.' || ch == '!' || ch == '?') 
-                        {
-                            if (word.Length != 0)
-                            {
-                                words.Add(Create_Word(word));
-                                word = "";
-                                punctuations.Add(Create_Punctuation(ch));
-                                sentences.Add(Create_Sentence(words, punctuations));
-                                words.Clear();
-                                punctuations.Clear();
-                            }
-                            else
-                            {
-                                punctuations.Add(Create_Punctuation(ch));
-                                sentences.Add(Create_Sentence(words, punctuations));
-                                words.Clear();
-                                punctuations.Clear();
-                            }
-                        }
-                        else if (Char.IsPunctuation(ch) == true)
-                        {
-                            if (word.Length != 0)
-                            {
-                                words.Add(Create_Word(word));
-                                word = "";
-                            }
-                            punctuations.Add(Create_Punctuation(ch));
-                        }
+                    }
+                    if (reg_end_sentence.IsMatch(sentence) || reg_end_sentence1.IsMatch(sentence))
+                    {
+                        sentence = "";
+                        sentences.Add(Create_Sentence(words, punctuations));
+                        words.Clear();
+                        punctuations.Clear();
+                    }
+                    else if (reg_end_sentence2.IsMatch(sentence))
+                    {
+                        sentence = "";
+                        punctuations.Add(Create_Punctuation('.'));
+                        sentences.Add(Create_Sentence(words, punctuations));
+                        words.Clear();
+                        punctuations.Clear();
                     }
                 }
+                if (!reg_end_final.IsMatch(sentence))
+                {
+                    if (word.Length > 0 || words.Count > 0)
+                    {
+                        if (word.Length > 0)
+                        {
+                            words.Add(Create_Word(word));
+                        }
+                        punctuations.Add(Create_Punctuation('.'));
+                        sentences.Add(Create_Sentence(words, punctuations));
+                    }
+                }
+                else
+                {
+                    sentences.Add(Create_Sentence(words, punctuations));
+                }
+                return new Text(sentences);
             }
-            return new Text(sentences);
-        } // Прочитать текст
+        }
+
         public static void PrintBy_Amount_Words(Text text) // По порядку по возрастанию кол-ва слов
         {
             for (int i = 0; i < text.Count_Sentences() - 1; i++)
@@ -390,7 +504,7 @@ namespace main
                     }
                 }
             }
-            text.Print(); // дописать !!!!!!!
+            text.Print();
         }
         public static void PrintBy_Length_Words(Text text) // По порядку по возрастанию длины 
         {
@@ -441,21 +555,44 @@ namespace main
             }
             return words;
         }
-        public static List<Word> Delete(Text text, int length) // Удалить все слова нужной длины, которые начинаются с согласной
+        public static bool Check_Consonant(Char letter)
         {
-            string vowel_letters = "AEIOUaeiou";
-            List<Word> words = new List<Word>();
-            foreach (Sentence sentence in text.sentences)
+            String consonants_low = "bcdfghjklmnpqrstvwxyzбвгджзйклмнпрстфхцчшщ";
+            String consonants_up = consonants_low.ToUpper();
+            foreach (char ch in consonants_low)
             {
-                foreach (Word word in sentence.words)
+                if (ch == letter)
                 {
-                    if (word.Length() == length && vowel_letters.Contains(word[0]) == false)
-                    {
-                        words.Add(word);
-                    }
+                    return true;
                 }
             }
-            return words;
+            foreach (char ch in consonants_up)
+            {
+                if (ch == letter)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+        public static Text Delete(Text text, int length) // Удалить все слова нужной длины, которые начинаются с согласной
+        {
+            int i = 0;
+            foreach (Sentence sentence in text.sentences)
+            {
+                i = 0;
+                while (i < sentence.words.Count())
+                {
+                    if (sentence.words[i].Length() == length && Check_Consonant(sentence.words[i][0]) == true)
+                    {
+                        sentence.Remove_Word(i);
+                        i -= 1;
+                        continue;
+                    }
+                    i += 1;
+                }
+            }
+            return text;
         }
         public static void Replace(Text text, int number, int length, string s)
         {
@@ -479,44 +616,48 @@ namespace main
             }
             return key;
         } // Проверить наличие стоп-слова/слов
-        public static List<Word> Delete_Stop_Words(Text text, string path)
+        public static Text Delete_Stop_Words(Text text, string path)
         {
-            List<Word> result = new List<Word>();
-            List<Word> stop_words = new List<Word>();
+            List<Word> stop_words_list = new List<Word>();
             string stop_word = "";
             using (StreamReader sr = new StreamReader(path))
             {
                 while (sr.EndOfStream != true)
                 {
                     stop_word = sr.ReadLine();
-                    stop_words.Add(Create_Word(stop_word));
+                    string[] stop_words = stop_word.Split(" ", StringSplitOptions.RemoveEmptyEntries);
+                    foreach (String word in stop_words)
+                    {
+                        stop_words_list.Add(Create_Word(word));
+                    }
                 }
             }
             foreach (Sentence sentence in text.sentences)
             {
                 foreach (Word word in sentence.words)
                 {
-                    if (Check_Stop_Word(word, stop_words) == false)
+                    if (Check_Stop_Word(word, stop_words_list) == true)
                     {
-                        result.Add(word);
+                        sentence.Remove_Word(word, true);
                     }
                 }
             }
-            return result;
+            return text;
         } // Удалить стоп-слова
+        public static void Serialize(Text text)
+        {
+            XmlSerializer serializer = new XmlSerializer(typeof(Text));
+            using (FileStream fs = new FileStream(@"C:\\Users\\noob1\\source\\repos\\Laba 3\\Laba 3\\Xml.text.xml", FileMode.OpenOrCreate))
+            {
+                serializer.Serialize(fs, text);
+            }
+        }
         public static void Main(string[] args)
         {
-            string path = @"C:\Users\noob1\source\repos\Laba 3\Laba 3\test_len_words.txt";
-            Text text = Read_text(path);
-            text.Print(); // +
-            //text.Print_Token_Amount(); // +
-            //foreach(Sentence sentence in text.sentences)
-            //{
-                //sentence.Print_Token_Amount(); // +
-            //}
-            //PrintBy_Amount_Words(text); // +-
-            PrintBy_Length_Words(text); // +-
+            string path = @"C:\Users\noob1\source\repos\Laba 3\Laba 3\test.txt";
+            Text text = Read_txt(path);
+            Serialize(text);
+            text.Print();
         }
-
     }
 }
